@@ -51,6 +51,7 @@ def create_payment_intent():
                     },
                 },
             },
+            return_url='https://token-maker.onrender.com/',
             confirmation_method='manual',
             confirm=True,
         )
