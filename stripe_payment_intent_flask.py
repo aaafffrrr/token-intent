@@ -16,19 +16,21 @@ stripe.api_key = STRIPE_SECRET_KEY
 def index():
     return render_template('index.html', publishable_key=STRIPE_PUBLISHABLE_KEY)
 
-@app.route('/receive_token', methods=['POST'])
-def receive_token():
-    token = request.json.get('token')
-    print(f"Received token: {token}")
-    return jsonify({'status': 'success', 'token': token}), 200
-
 @app.route('/create_payment_intent', methods=['POST'])
 def create_payment_intent():
     try:
-        token = request.json.get('token')
-        amount = request.json.get('amount')
+        data = request.json
+        amount = data.get('amount')
+        email = data.get('email')
+        name = data.get('name')
+        address_line1 = data.get('address_line1')
+        city = data.get('city')
+        state = data.get('state')
+        country = data.get('country')
+        postal_code = data.get('postal_code')
+        token = data.get('token')
 
-        # Create a PaymentIntent with the given token
+        # Create a PaymentIntent with the given token and additional information
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency='usd',
@@ -36,6 +38,17 @@ def create_payment_intent():
                 'type': 'card',
                 'card': {
                     'token': token,
+                },
+                'billing_details': {
+                    'name': name,
+                    'email': email,
+                    'address': {
+                        'line1': address_line1,
+                        'city': city,
+                        'state': state,
+                        'country': country,
+                        'postal_code': postal_code,
+                    },
                 },
             },
             confirmation_method='manual',
