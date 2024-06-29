@@ -30,6 +30,34 @@
                 <label for="amount">Amount (in cents)</label>
                 <input type="number" id="amount" class="form-control" required>
             </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="address_line1">Address Line 1</label>
+                <input type="text" id="address_line1" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="state">State</label>
+                <input type="text" id="state" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="country">Country</label>
+                <input type="text" id="country" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="postal_code">Postal Code</label>
+                <input type="text" id="postal_code" class="form-control" required>
+            </div>
             <button class="btn btn-success" type="submit">Create Payment Intent</button>
         </form>
     </div>
@@ -116,6 +144,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         var tokenTextarea = document.getElementById('token');
         var amountInput = document.getElementById('amount');
+        var emailInput = document.getElementById('email');
+        var nameInput = document.getElementById('name');
+        var addressLine1Input = document.getElementById('address_line1');
+        var cityInput = document.getElementById('city');
+        var stateInput = document.getElementById('state');
+        var countryInput = document.getElementById('country');
+        var postalCodeInput = document.getElementById('postal_code');
 
         fetch('/create_payment_intent', {
             method: 'POST',
@@ -124,7 +159,14 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             body: JSON.stringify({
                 token: tokenTextarea.value,
-                amount: amountInput.value
+                amount: amountInput.value,
+                email: emailInput.value,
+                name: nameInput.value,
+                address_line1: addressLine1Input.value,
+                city: cityInput.value,
+                state: stateInput.value,
+                country: countryInput.value,
+                postal_code: postalCodeInput.value
             })
         }).then(function (response) {
             return response.json();
