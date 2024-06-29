@@ -4,153 +4,67 @@
     <meta charset="UTF-8">
     <title>Stripe Payment Intent Creator</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 <div class="container">
     <h2 class="mt-5">Stripe Payment Intent Creator</h2>
     <div id="messages"></div>
-    <form id="payment-form" class="mt-4">
+    <form id="payment-intent-form" class="mt-4">
         <div class="form-group">
-            <label for="card-element">Credit or debit card</label>
-            <div id="card-element" class="form-control">
-                <!-- A Stripe Element will be inserted here. -->
-            </div>
-            <!-- Used to display form errors. -->
-            <div id="card-errors" role="alert"></div>
+            <label for="email">Email</label>
+            <input type="email" id="email" class="form-control" required>
         </div>
-        <button class="btn btn-primary" type="submit">Generate Token</button>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount (in cents)</label>
+            <input type="number" id="amount" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="address_line1">Address Line 1</label>
+            <input type="text" id="address_line1" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="state">State</label>
+            <input type="text" id="state" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="country">Country</label>
+            <input type="text" id="country" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="postal_code">Postal Code</label>
+            <input type="text" id="postal_code" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="token">Card Token</label>
+            <input type="text" id="token" class="form-control" required>
+        </div>
+        <button class="btn btn-success" type="submit">Create Payment Intent</button>
     </form>
-    <div id="token-container" class="mt-4" style="display: none;">
-        <label for="token">Generated Token</label>
-        <textarea id="token" class="form-control" rows="3" readonly></textarea>
-        <button id="copy-token" class="btn btn-secondary mt-2">Copy Token</button>
-        <form id="payment-intent-form" class="mt-4">
-            <div class="form-group">
-                <label for="amount">Amount (in cents)</label>
-                <input type="number" id="amount" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" id="name" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="address_line1">Address Line 1</label>
-                <input type="text" id="address_line1" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="city">City</label>
-                <input type="text" id="city" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="state">State</label>
-                <input type="text" id="state" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="country">Country</label>
-                <input type="text" id="country" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="postal_code">Postal Code</label>
-                <input type="text" id="postal_code" class="form-control" required>
-            </div>
-            <button class="btn btn-success" type="submit">Create Payment Intent</button>
-        </form>
-    </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    var stripe = Stripe('{{ publishable_key }}');
-    var elements = stripe.elements();
-    var style = {
-        base: {
-            color: "#32325d",
-            fontFamily: 'Arial, sans-serif',
-            fontSmoothing: "antialiased",
-            fontSize: "16px",
-            "::placeholder": {
-                color: "#aab7c4"
-            }
-        },
-        invalid: {
-            color: "#fa755a",
-            iconColor: "#fa755a"
-        }
-    };
-
-    var card = elements.create("card", { style: style });
-    card.mount("#card-element");
-
-    card.on('change', function (event) {
-        var displayError = document.getElementById('card-errors');
-        if (event.error) {
-            displayError.textContent = event.error.message;
-        } else {
-            displayError.textContent = '';
-        }
-    });
-
-    var form = document.getElementById('payment-form');
+    var form = document.getElementById('payment-intent-form');
     form.addEventListener('submit', function (event) {
         event.preventDefault();
 
-        stripe.createToken(card).then(function (result) {
-            if (result.error) {
-                var errorElement = document.getElementById('card-errors');
-                errorElement.textContent = result.error.message;
-            } else {
-                fetch('/receive_token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        token: result.token.id
-                    })
-                }).then(function (response) {
-                    return response.json();
-                }).then(function (data) {
-                    var messages = document.getElementById('messages');
-                    if (data.status === 'success') {
-                        messages.innerHTML = '<div class="alert alert-success">Token generated and received successfully!</div>';
-                        var tokenContainer = document.getElementById('token-container');
-                        var tokenTextarea = document.getElementById('token');
-                        tokenTextarea.value = data.token;
-                        tokenContainer.style.display = 'block';
-                    } else {
-                        messages.innerHTML = '<div class="alert alert-danger">There was an error receiving the token.</div>';
-                    }
-                });
-            }
-        });
-    });
-
-    var copyButton = document.getElementById('copy-token');
-    copyButton.addEventListener('click', function () {
-        var tokenTextarea = document.getElementById('token');
-        tokenTextarea.select();
-        document.execCommand('copy');
-        alert('Token copied to clipboard!');
-    });
-
-    var paymentIntentForm = document.getElementById('payment-intent-form');
-    paymentIntentForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-
-        var tokenTextarea = document.getElementById('token');
-        var amountInput = document.getElementById('amount');
-        var emailInput = document.getElementById('email');
-        var nameInput = document.getElementById('name');
-        var addressLine1Input = document.getElementById('address_line1');
-        var cityInput = document.getElementById('city');
-        var stateInput = document.getElementById('state');
-        var countryInput = document.getElementById('country');
-        var postalCodeInput = document.getElementById('postal_code');
+        var email = document.getElementById('email').value;
+        var name = document.getElementById('name').value;
+        var amount = document.getElementById('amount').value;
+        var addressLine1 = document.getElementById('address_line1').value;
+        var city = document.getElementById('city').value;
+        var state = document.getElementById('state').value;
+        var country = document.getElementById('country').value;
+        var postalCode = document.getElementById('postal_code').value;
+        var token = document.getElementById('token').value;
 
         fetch('/create_payment_intent', {
             method: 'POST',
@@ -158,15 +72,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                token: tokenTextarea.value,
-                amount: amountInput.value,
-                email: emailInput.value,
-                name: nameInput.value,
-                address_line1: addressLine1Input.value,
-                city: cityInput.value,
-                state: stateInput.value,
-                country: countryInput.value,
-                postal_code: postalCodeInput.value
+                email: email,
+                name: name,
+                amount: amount,
+                address_line1: addressLine1,
+                city: city,
+                state: state,
+                country: country,
+                postal_code: postalCode,
+                token: token
             })
         }).then(function (response) {
             return response.json();
