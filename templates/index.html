@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stripe Payment Intent Creator</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<div class="container">
+    <h2 class="mt-5">Stripe Payment Intent Creator</h2>
+    <div id="messages"></div>
+    <form id="payment-form" class="mt-4">
+        <div class="form-group">
+            <label for="card-element">Credit or debit card</label>
+            <div id="card-element" class="form-control">
+                <!-- A Stripe Element will be inserted here. -->
+            </div>
+            <!-- Used to display form errors. -->
+            <div id="card-errors" role="alert"></div>
+        </div>
+        <button class="btn btn-primary" type="submit">Generate Token</button>
+    </form>
+    <div id="token-container" class="mt-4" style="display: none;">
+        <label for="token">Generated Token</label>
+        <textarea id="token" class="form-control" rows="3" readonly></textarea>
+        <button id="copy-token" class="btn btn-secondary mt-2">Copy Token</button>
+        <form id="payment-intent-form" class="mt-4">
+            <div class="form-group">
+                <label for="amount">Amount (in cents)</label>
+                <input type="number" id="amount" class="form-control" required>
+            </div>
+            <button class="btn btn-success" type="submit">Create Payment Intent</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var stripe = Stripe('{{ publishable_key }}');
+    var elements = stripe.elements();
+    var style = {
+        base: {
+            color: "#32325d",
+            fontFamily: 'Arial, sans-serif',
+            fontSmoothing: "antialiased",
+            fontSize: "16px",
+            "::placeholder": {
+                color: "#aab7c4"
+            }
+        },
+        invalid: {
+            color: "#fa755a",
+            iconColor: "#fa755a"
+        }
+    };
+
+    var card = elements.create("card", { style: style });
+    card.mount("#card-element");
+
+    card.on('change', function (event) {
+        var displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    var form = document.getElementById('payment-form');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        stripe.createToken(card).then(function (result) {
+            if (result.error) {
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                fetch('/receive_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: result.token.id
+                    })
+                }).then(function (response) {
+                    return response.json();
+                }).then(function (data) {
+                    var messages = document.getElementById('messages');
+                    if (data.status === 'success') {
+                        messages.innerHTML = '<div class="alert alert-success">Token generated and received successfully!</div>';
+                        var tokenContainer = document.getElementById('token-container');
+                        var tokenTextarea = document.getElementById('token');
+                        tokenTextarea.value = data.token;
+                        tokenContainer.style.display = 'block';
+                    } else {
+                        messages.innerHTML = '<div class="alert alert-danger">There was an error receiving the token.</div>';
+                    }
+                });
+            }
+        });
+    });
+
+    var copyButton = document.getElementById('copy-token');
+    copyButton.addEventListener('click', function () {
+        var tokenTextarea = document.getElementById('token');
+        tokenTextarea.select();
+        document.execCommand('copy');
+        alert('Token copied to clipboard!');
+    });
+
+    var paymentIntentForm = document.getElementById('payment-intent-form');
+    paymentIntentForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var tokenTextarea = document.getElementById('token');
+        var amountInput = document.getElementById('amount');
+
+        fetch('/create_payment_intent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                token: tokenTextarea.value,
+                amount: amountInput.value
+            })
+        }).then(function (response) {
+            return response.json();
+        }).then(function (data) {
+            var messages = document.getElementById('messages');
+            if (data.status === 'success') {
+                messages.innerHTML = '<div class="alert alert-success">Payment Intent created successfully! Client Secret: ' + data.client_secret + '</div>';
+            } else {
+                messages.innerHTML = '<div class="alert alert-danger">Error: ' + data.message + '</div>';
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>
